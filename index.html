@@ -2,13 +2,16 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Sopa de Letras Interactiva</title>
+  <title>Sopa de Letras</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
       font-family: sans-serif;
       background: #111;
       color: #eee;
       text-align: center;
+      margin: 0;
+      padding: 0 10px;
     }
     h1 {
       color: #f44336;
@@ -19,6 +22,7 @@
       gap: 2px;
       justify-content: center;
       margin: 20px auto;
+      touch-action: none;
     }
     .celda {
       width: 30px;
@@ -31,6 +35,7 @@
       cursor: pointer;
       user-select: none;
       border: 1px solid #444;
+      font-weight: bold;
     }
     .celda.seleccionada {
       background-color: #f44336;
@@ -68,11 +73,8 @@
 <body>
 
 <h1>Sopa de Letras Oscura</h1>
-
 <div class="sopa" id="sopa"></div>
-
 <div class="palabras" id="lista-palabras"></div>
-
 <div id="mensaje"></div>
 
 <script>
@@ -158,27 +160,6 @@
   });
 
   let seleccion = [];
-  let mouseDown = false;
-
-  contenedor.addEventListener('mousedown', e => {
-    if (e.target.classList.contains('celda')) {
-      limpiarSeleccion();
-      mouseDown = true;
-      seleccionarCelda(e.target);
-    }
-  });
-
-  contenedor.addEventListener('mouseover', e => {
-    if (mouseDown && e.target.classList.contains('celda')) {
-      seleccionarCelda(e.target);
-    }
-  });
-
-  document.addEventListener('mouseup', () => {
-    mouseDown = false;
-    verificarSeleccion();
-    seleccion = [];
-  });
 
   function seleccionarCelda(celda) {
     if (!celda.classList.contains('seleccionada')) {
@@ -203,11 +184,9 @@
   function verificarSeleccion() {
     const palabra = seleccion.map(c => c.textContent).join('');
     const palabraReversa = seleccion.map(c => c.textContent).reverse().join('');
-
     const encontrada = Object.keys(posiciones).find(p =>
       p === palabra || p === palabraReversa
     );
-
     if (encontrada) {
       seleccion.forEach(c => {
         c.classList.add('encontrada');
@@ -219,6 +198,59 @@
       limpiarSeleccion();
     }
   }
+
+  // Compatibilidad táctil y mouse
+  let mouseDown = false;
+
+  function getCeldaDesdeEvento(e) {
+    const touch = e.touches?.[0] || e.changedTouches?.[0] || e;
+    const elemento = document.elementFromPoint(touch.clientX, touch.clientY);
+    return elemento?.classList.contains('celda') ? elemento : null;
+  }
+
+  contenedor.addEventListener('mousedown', e => {
+    if (e.target.classList.contains('celda')) {
+      limpiarSeleccion();
+      mouseDown = true;
+      seleccionarCelda(e.target);
+    }
+  });
+
+  contenedor.addEventListener('mouseover', e => {
+    if (mouseDown && e.target.classList.contains('celda')) {
+      seleccionarCelda(e.target);
+    }
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (mouseDown) {
+      mouseDown = false;
+      verificarSeleccion();
+      seleccion = [];
+    }
+  });
+
+  contenedor.addEventListener('touchstart', e => {
+    e.preventDefault();
+    const celda = getCeldaDesdeEvento(e);
+    if (celda) {
+      limpiarSeleccion();
+      seleccionarCelda(celda);
+    }
+  }, { passive: false });
+
+  contenedor.addEventListener('touchmove', e => {
+    e.preventDefault();
+    const celda = getCeldaDesdeEvento(e);
+    if (celda) {
+      seleccionarCelda(celda);
+    }
+  }, { passive: false });
+
+  contenedor.addEventListener('touchend', e => {
+    verificarSeleccion();
+    seleccion = [];
+  });
 </script>
 
 </body>
