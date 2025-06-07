@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Sopa de Letras Interactiva</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #111;
+      color: #eee;
+      text-align: center;
+    }
+    h1 {
+      color: #f44336;
+    }
+    .sopa {
+      display: grid;
+      grid-template-columns: repeat(15, 30px);
+      gap: 2px;
+      justify-content: center;
+      margin: 20px auto;
+    }
+    .celda {
+      width: 30px;
+      height: 30px;
+      background: #222;
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+      border: 1px solid #444;
+    }
+    .celda.seleccionada {
+      background-color: #f44336;
+    }
+    .celda.encontrada {
+      background-color: #4caf50 !important;
+    }
+    .palabras {
+      margin-top: 20px;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+      text-align: left;
+    }
+    .palabras span {
+      display: inline-block;
+      margin: 4px 10px;
+      padding: 4px 8px;
+      background: #333;
+      border-radius: 4px;
+    }
+    .palabras span.encontrada {
+      background-color: #4caf50;
+      text-decoration: line-through;
+    }
+    #mensaje {
+      margin-top: 20px;
+      font-size: 18px;
+      color: #4caf50;
+      min-height: 1.5em;
+      transition: opacity 0.3s ease;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Sopa de Letras Oscura</h1>
+
+<div class="sopa" id="sopa"></div>
+
+<div class="palabras" id="lista-palabras"></div>
+
+<div id="mensaje"></div>
+
+<script>
+  const palabras = [
+    "vilma", "sordamuda", "nicaragua", "managua", "depresion",
+    "pesadilla", "cementerio", "sordomudos", "mierda",
+    "fantasma", "oscuro", "lagrimas", "terror", "silencio",
+    "gritos", "noche", "frio", "abandono", "trauma", "llanto"
+  ];
+
+  const gridSize = 15;
+  const sopa = Array(gridSize).fill(null).map(() => Array(gridSize).fill(''));
+  const posiciones = {};
+
+  function colocarPalabra(palabra) {
+    const direcciones = [
+      [0, 1], [1, 0], [1, 1], [-1, 1]
+    ];
+    let colocado = false;
+    palabra = palabra.toUpperCase();
+    while (!colocado) {
+      const dir = direcciones[Math.floor(Math.random() * direcciones.length)];
+      const x = Math.floor(Math.random() * gridSize);
+      const y = Math.floor(Math.random() * gridSize);
+      if (x + dir[0] * palabra.length >= gridSize || y + dir[1] * palabra.length >= gridSize || x + dir[0] * palabra.length < 0 || y + dir[1] * palabra.length < 0)
+        continue;
+      let puedeColocar = true;
+      for (let i = 0; i < palabra.length; i++) {
+        const cx = x + dir[0] * i;
+        const cy = y + dir[1] * i;
+        const letraExistente = sopa[cy][cx];
+        if (letraExistente !== '' && letraExistente !== palabra[i]) {
+          puedeColocar = false;
+          break;
+        }
+      }
+      if (puedeColocar) {
+        posiciones[palabra] = [];
+        for (let i = 0; i < palabra.length; i++) {
+          const cx = x + dir[0] * i;
+          const cy = y + dir[1] * i;
+          sopa[cy][cx] = palabra[i];
+          posiciones[palabra].push(`${cy}-${cx}`);
+        }
+        colocado = true;
+      }
+    }
+  }
+
+  palabras.forEach(p => colocarPalabra(p));
+
+  const letras = "ABCDEFGHIJKLMNÑOPQRSTUVWXYZ";
+  for (let y = 0; y < gridSize; y++) {
+    for (let x = 0; x < gridSize; x++) {
+      if (sopa[y][x] === '') {
+        sopa[y][x] = letras[Math.floor(Math.random() * letras.length)];
+      }
+    }
+  }
+
+  const contenedor = document.getElementById('sopa');
+  const celdas = [];
+
+  for (let y = 0; y < gridSize; y++) {
+    celdas[y] = [];
+    for (let x = 0; x < gridSize; x++) {
+      const celda = document.createElement('div');
+      celda.className = 'celda';
+      celda.textContent = sopa[y][x];
+      celda.dataset.x = x;
+      celda.dataset.y = y;
+      contenedor.appendChild(celda);
+      celdas[y][x] = celda;
+    }
+  }
+
+  const lista = document.getElementById('lista-palabras');
+  palabras.forEach(p => {
+    const span = document.createElement('span');
+    span.textContent = p;
+    span.id = 'palabra-' + p;
+    lista.appendChild(span);
+  });
+
+  let seleccion = [];
+  let mouseDown = false;
+
+  contenedor.addEventListener('mousedown', e => {
+    if (e.target.classList.contains('celda')) {
+      limpiarSeleccion();
+      mouseDown = true;
+      seleccionarCelda(e.target);
+    }
+  });
+
+  contenedor.addEventListener('mouseover', e => {
+    if (mouseDown && e.target.classList.contains('celda')) {
+      seleccionarCelda(e.target);
+    }
+  });
+
+  document.addEventListener('mouseup', () => {
+    mouseDown = false;
+    verificarSeleccion();
+    seleccion = [];
+  });
+
+  function seleccionarCelda(celda) {
+    if (!celda.classList.contains('seleccionada')) {
+      celda.classList.add('seleccionada');
+      seleccion.push(celda);
+    }
+  }
+
+  function limpiarSeleccion() {
+    document.querySelectorAll('.celda.seleccionada').forEach(c => c.classList.remove('seleccionada'));
+  }
+
+  function mostrarMensaje(texto) {
+    const mensaje = document.getElementById('mensaje');
+    mensaje.textContent = texto;
+    mensaje.style.opacity = 1;
+    setTimeout(() => {
+      mensaje.style.opacity = 0;
+    }, 2000);
+  }
+
+  function verificarSeleccion() {
+    const palabra = seleccion.map(c => c.textContent).join('');
+    const palabraReversa = seleccion.map(c => c.textContent).reverse().join('');
+
+    const encontrada = Object.keys(posiciones).find(p =>
+      p === palabra || p === palabraReversa
+    );
+
+    if (encontrada) {
+      seleccion.forEach(c => {
+        c.classList.add('encontrada');
+        c.classList.remove('seleccionada');
+      });
+      document.getElementById('palabra-' + encontrada.toLowerCase()).classList.add('encontrada');
+      mostrarMensaje(`${encontrada.toLowerCase()} confirmada`);
+    } else {
+      limpiarSeleccion();
+    }
+  }
+</script>
+
+</body>
+</html>
